@@ -1,7 +1,7 @@
 pub mod snapshots;
 
 use std::time::Instant;
-use snapshots::processes::ProcessCollector;
+use snapshots::collector::ProcessCollector;
 
 fn main() -> std::io::Result<()> {
 
@@ -18,8 +18,8 @@ fn main() -> std::io::Result<()> {
 
         let elapsed = start.elapsed();
         
-            //println!("Processos: {} | Captura: {:?}",processes.len(),elapsed);
-            //println!("Processos coletados: {:?}", processes);
+        println!("Processos: {} | Captura: {:?}",processes.len(),elapsed);
+        println!("Processos coletados: {:?}", processes);
     }
 
 }
