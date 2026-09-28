@@ -18,11 +18,7 @@ fn main() -> std::io::Result<()> {
 
         let elapsed = start.elapsed();
         
-            println!(
-                "Processos: {} | Captura: {:?}",
-                processes.len(),
-                elapsed
-            );
+            //println!("Processos: {} | Captura: {:?}",processes.len(),elapsed);
             //println!("Processos coletados: {:?}", processes);
     }
 
