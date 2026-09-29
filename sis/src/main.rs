@@ -10,16 +10,33 @@ fn main() -> std::io::Result<()> {
 
     let mut collector = ProcessCollector::new();
 
-    loop {
-        
+    for i in 0..10 {
         let start = Instant::now();
 
         let processes = collector.collect()?;
 
         let elapsed = start.elapsed();
-        
-        println!("Processos: {} | Captura: {:?}",processes.len(),elapsed);
-        println!("Processos coletados: {:?}", processes);
+
+        println!(
+            "#{:02} | processos: {} | captura: {:?}",
+            i + 1,
+            processes.len(),
+            elapsed
+        );
     }
+
+    Ok(())
+
+    // loop {
+        
+    //     let start = Instant::now();
+
+    //     let processes = collector.collect()?;
+
+    //     let elapsed = start.elapsed();
+        
+    //     println!("Processos: {} | Captura: {:?}",processes.len(),elapsed);
+    //     println!("Processos coletados: {:?}", processes);
+    // }
 
 }

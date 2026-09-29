@@ -33,7 +33,6 @@ pub struct Memory {
     pub vm_stk: u64,
     pub vm_exe: u64,
     pub vm_lib: u64,
-    pub resident_memory: u64,
 }
 
 #[derive(Debug, Clone)]

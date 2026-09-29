@@ -1,0 +1,11 @@
+[workspace]
+members = [
+    "sis",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+authors = ["yurycvianez@gmail.com"]
+license = "MIT"

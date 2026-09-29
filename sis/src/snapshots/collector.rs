@@ -104,7 +104,7 @@ impl ProcessCollector {
             nice,
             start_time,
             vsize,
-            rss,
+            //rss,
             name,
         ) = Self::_parse_stat(&self.stat_buffer)?;
 
@@ -118,23 +118,22 @@ impl ProcessCollector {
             vm_exe, 
             vm_lib, 
             vm_rss,
-            resident_memory,
         ) = match fs::read_to_string(proc_path.join("status")) {
             Ok(content) => {
                 self.status_buffer = content;
                 Self::_parse_status(&self.status_buffer)
             }
-            Err(_) => (0, 0, 0, 0, 0, 0, 0, 0),
+            Err(_) => (0, 0, 0, 0, 0, 0, 0),
         };
 
         self.cmdline_buffer.clear();
         let command_line = match fs::read_to_string(proc_path.join("cmdline")) {
             Ok(content) => {
-                // cmdline tem \0 como separador, substituir por espaço
-                content
-                    .replace('\0', " ")
-                    .trim()
-                    .to_string()
+
+                self.cmdline_buffer.push_str(&content);
+                Self::_parse_command_line(
+                    &self.cmdline_buffer
+                )
             }
             Err(_) => String::new(),
         };
@@ -177,14 +176,13 @@ impl ProcessCollector {
             },
             memory: Memory {
                 vm_size: vsize,
-                vm_rss: rss,
+                vm_rss,
                 vm_peak,
                 vm_hwm,
                 vm_data,
                 vm_stk,
                 vm_exe,
                 vm_lib,
-                resident_memory,
             },
             io: IOB {
                 read_bytes,
@@ -208,13 +206,16 @@ impl ProcessCollector {
 
     fn _parse_stat(
         stat: &str,
-    ) -> io::Result<(u32, char, u32, u64, u64, u64, u64, i32, i32, u64, u64, u64, String)> {
+    ) -> io::Result<(u32, char, u32, u64, u64, u64, u64, i32, i32, u64, u64, String)> {
 
         let closing_paren = stat.rfind(')').ok_or_else(|| {
-            io::Error::new(io::ErrorKind::InvalidData, "Invalid stat format")
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                 "Invalid stat format"
+            )
         })?;
- 
-        let name = stat[1..closing_paren]
+
+        let name = stat[3..closing_paren]
             .to_string();
  
         let rest = &stat[closing_paren + 1..];
@@ -252,7 +253,7 @@ impl ProcessCollector {
         let thread_count = parts[17].parse().unwrap_or(1);
         let start_time = parts[19].parse().unwrap_or(0);
         let vsize = parts[20].parse().unwrap_or(0);
-        let rss = parts[21].parse().unwrap_or(0);
+        //let rss = parts[21].parse().unwrap_or(0);
  
         Ok((
             ppid,
@@ -266,13 +267,13 @@ impl ProcessCollector {
             nice,
             start_time,
             vsize,
-            rss,
+            //rss,
             name,
         ))
     }
  
     /// proc/[pid]/status 
-    fn _parse_status(status: &str) -> (u64, u64, u64, u64, u64, u64, u64, u64) {
+    fn _parse_status(status: &str) -> (u64, u64, u64, u64, u64, u64, u64) {
 
         let mut vm_peak = 0u64;
         let mut vm_hwm = 0u64;
@@ -281,29 +282,52 @@ impl ProcessCollector {
         let mut vm_exe = 0u64;
         let mut vm_lib = 0u64;
         let mut vm_rss = 0u64;
-        let mut resident_memory = 0u64;
  
         for line in status.lines() {
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.len() < 2 {
+
+            let mut parts = line.split_whitespace();
+
+            let Some(field) = parts.next() else {
                 continue;
-            }
- 
-            match parts[0] {
-                "VmPeak:" => vm_peak = parts[1].parse().unwrap_or(0),
-                "VmHWM:" => vm_hwm = parts[1].parse().unwrap_or(0),
-                "VmData:" => vm_data = parts[1].parse().unwrap_or(0),
-                "VmStk:" => vm_stk = parts[1].parse().unwrap_or(0),
-                "VmExe:" => vm_exe = parts[1].parse().unwrap_or(0),
-                "VmLib:" => vm_lib = parts[1].parse().unwrap_or(0),
-                "VmRSS:" => vm_rss = parts[1].parse().unwrap_or(0),
+            };
+
+            let Some(value) = parts.next() else {
+                continue;
+            };
+
+            let Ok(value) = value.parse::<u64>() else {
+                continue;
+            };
+
+            match field {
+
+                "VmPeak:" => vm_peak = value,
+
+                "VmHWM:" => vm_hwm = value,
+
+                "VmData:" => vm_data = value,
+
+                "VmStk:" => vm_stk = value,
+
+                "VmExe:" => vm_exe = value,
+
+                "VmLib:" => vm_lib = value,
+
+                "VmRSS:" => vm_rss = value,
+
                 _ => {}
             }
         }
-        
-        resident_memory = vm_rss;
 
-        (vm_peak, vm_hwm, vm_data, vm_stk, vm_exe, vm_lib, vm_rss, resident_memory)
+        (
+            vm_peak,
+            vm_hwm,
+            vm_data,
+            vm_stk,
+            vm_exe,
+            vm_lib,
+            vm_rss
+        )
     }
  
     /// /proc/[pid]/io
@@ -314,24 +338,71 @@ impl ProcessCollector {
         let mut read_syscalls = 0u64;
         let mut write_syscalls = 0u64;
  
+
         for line in io.lines() {
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.len() < 2 {
+
+            let mut parts = line.split_whitespace();
+
+            let Some(field) = parts.next() else {
                 continue;
-            }
- 
-            match parts[0] {
-                "read_bytes:" => read_bytes = parts[1].parse().unwrap_or(0),
-                "write_bytes:" => write_bytes = parts[1].parse().unwrap_or(0),
-                "syscr:" => read_syscalls = parts[1].parse().unwrap_or(0),
-                "syscw:" => write_syscalls = parts[1].parse().unwrap_or(0),
+            };
+
+            let Some(value) = parts.next() else {
+                continue;
+            };
+
+            let Ok(value) = value.parse::<u64>() else {
+                continue;
+            };
+
+            match field {
+
+                "read_bytes:" => {
+                    read_bytes = value;
+                }
+
+                "write_bytes:" => {
+                    write_bytes = value;
+                }
+
+                "syscr:" => {
+                    read_syscalls = value;
+                }
+
+                "syscw:" => {
+                    write_syscalls = value;
+                }
+
                 _ => {}
             }
         }
- 
-        (read_bytes, write_bytes, read_syscalls, write_syscalls)
+
+        (
+            read_bytes, 
+            write_bytes, 
+            read_syscalls, 
+            write_syscalls
+        )
     }
  
+     fn _parse_command_line(command_line: &str) -> String {
+
+        let mut result = String::with_capacity(
+            command_line.len()
+        );
+
+        for byte in command_line.bytes() {
+
+            if byte == b'\0' {
+                result.push(' ');
+            } else {
+                result.push(byte as char);
+            }
+        }
+
+        result.trim_end().to_owned()
+    }
+
     fn _count_fds(proc_path: &Path) -> u32 {
         
         fs::read_dir(proc_path.join("fd"))
