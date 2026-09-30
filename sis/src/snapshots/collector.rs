@@ -2,6 +2,8 @@ use std::{
     fs, 
     io, 
     path::{Path, PathBuf},
+    hash::{Hash, Hasher},
+    collections::hash_map::DefaultHasher
 };
 
 use crate::snapshots::processes::{
@@ -26,7 +28,9 @@ pub struct ProcessInfo {
 
 pub struct ProcessCollector{
 
+    keyprocess      : u64,
     processes       : Vec<ProcessInfo>,
+
     stat_buffer     : String,
     status_buffer   : String,
     cmdline_buffer  : String,
@@ -41,7 +45,8 @@ impl ProcessCollector {
     pub fn new() -> Self {
         ProcessCollector { 
 
-            processes       : Vec::with_capacity(256),
+            keyprocess      : 0,
+            processes       : Vec::with_capacity(512),
             stat_buffer     : String::with_capacity(1024),
             status_buffer   : String::with_capacity(2048),
             cmdline_buffer  : String::with_capacity(1024),
@@ -65,7 +70,13 @@ impl ProcessCollector {
             let Ok(process) = self._get_info(&path, pid) else {
                 continue;
             };
-
+            
+            self.keyprocess = Self::_make_process_hash(
+                process.entity.pid, 
+                &process.entity.name, 
+                process.entity.start_time
+            );
+            
             self.processes.push(process);
         }
 
@@ -197,15 +208,16 @@ impl ProcessCollector {
         
     }
 
-    // fn _read_process_name(proc_path: &Path) -> io::Result<String> {
+    fn _make_process_hash(pid: u32, name: &str, start_time: u64) -> u64 {
+        
+        let mut hasher = DefaultHasher::new();
 
-    //     let comm_path = proc_path.join("comm");
-    //     let name = fs::read_to_string(comm_path)?
-    //         .trim()
-    //         .to_string();
-    //     Ok(name)
-    // } 
+        pid.hash(&mut hasher);
+        name.hash(&mut hasher);
+        start_time.hash(&mut hasher);
 
+        hasher.finish()
+    }
  
     fn _parse_stat(
         stat: &str,
@@ -355,10 +367,10 @@ impl ProcessCollector {
         /*
          * Field 24: rss
          */
-        let rss = parts
-            .next()
-            .and_then(|value| value.parse::<u64>().ok())
-            .unwrap_or(0);
+        // let rss = parts
+        //     .next()
+        //     .and_then(|value| value.parse::<u64>().ok())
+        //     .unwrap_or(0);
 
         Ok((
             ppid,
@@ -555,7 +567,6 @@ impl ProcessCollector {
             .map(|entries| entries.count() as u32)
             .unwrap_or(0)
     }
-
 
 }
 

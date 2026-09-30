@@ -1,5 +1,6 @@
 #[derive(Debug, Clone)]
 pub struct Entity {
+
     pub pid: u32,
     pub ppid: u32,
     pub name: String,
@@ -8,6 +9,7 @@ pub struct Entity {
 
 #[derive(Debug, Clone)]
 pub struct Execution {
+
     pub state: char,
     pub thread_count: u32,
     pub command_line: String,
@@ -17,6 +19,7 @@ pub struct Execution {
 
 #[derive(Debug, Clone)]
 pub struct CPU {
+
     pub utime: u64,
     pub stime: u64,
     pub cutime: u64,
@@ -25,6 +28,7 @@ pub struct CPU {
 
 #[derive(Debug, Clone)]
 pub struct Memory {
+
     pub vm_rss: u64,
     pub vm_size: u64,
     pub vm_peak: u64,
@@ -37,6 +41,7 @@ pub struct Memory {
 
 #[derive(Debug, Clone)]
 pub struct IOB {
+
     pub read_bytes: u64,
     pub write_bytes: u64,
     pub read_syscalls: u64,
@@ -45,5 +50,6 @@ pub struct IOB {
 
 #[derive(Debug, Clone)]
 pub struct Resources {
+
     pub num_fds: u32,
 }
