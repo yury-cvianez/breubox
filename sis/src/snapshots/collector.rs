@@ -6,31 +6,12 @@ use std::{
     collections::hash_map::DefaultHasher
 };
 
-use crate::snapshots::processes::{
-    Entity,
-    Execution,
-    CPU,
-    Memory,
-    IOB,
-    Resources,
-    KeyProcess
-};
+use crate::snapshots::ProcessInfo;
+
+
 
 #[derive(Debug, Clone)]
-pub struct ProcessInfo {
-
-    pub entity          : Entity,
-    pub execution       : Execution,
-    pub cpu             : CPU,
-    pub memory          : Memory,
-    pub io              : IOB,
-    pub resources       : Resources,
-    pub keyprocess      : KeyProcess,
-}
-
 pub struct ProcessCollector{
-
-    processes       : Vec<ProcessInfo>,
 
     stat_buffer     : String,
     status_buffer   : String,
@@ -46,7 +27,6 @@ impl ProcessCollector {
     pub fn new() -> Self {
         ProcessCollector { 
 
-            processes       : Vec::with_capacity(512),
             stat_buffer     : String::with_capacity(1024),
             status_buffer   : String::with_capacity(2048),
             cmdline_buffer  : String::with_capacity(1024),
@@ -54,9 +34,8 @@ impl ProcessCollector {
         }
     }
 
-    pub fn collect(&mut self) -> io::Result<&[ProcessInfo]> {
-        
-        self.processes.clear();
+    pub fn collect(&mut self, processes: &mut Vec<ProcessInfo>) -> io::Result<()> {
+        processes.clear();
 
         for entry in fs::read_dir("/proc")? {
             
@@ -71,11 +50,10 @@ impl ProcessCollector {
                 continue;
             };
             
-            self.processes.push(process);
+            processes.push(process);
         }
 
-
-        Ok(&self.processes)
+        Ok(())
     }
 
     fn _get_pid(path: &PathBuf) -> Option<u32> {
@@ -167,26 +145,26 @@ impl ProcessCollector {
 
         Ok(
             ProcessInfo {
-                entity: Entity {
+                entity: crate::snapshots::Entity {
                     pid,
                     ppid,
                     name,
                     start_time,
                 },
-                execution: Execution {
+                execution: crate::snapshots::Execution {
                     state,
                     thread_count,
                     command_line,
                     priority,
                     nice,
                 },
-                cpu: CPU {
+                cpu: crate::snapshots::CPU {
                     utime,
                     stime,
                     cutime,
                     cstime,
                 },
-                memory: Memory {
+                memory: crate::snapshots::Memory {
                     vm_size: vsize,
                     vm_rss,
                     vm_peak,
@@ -196,16 +174,16 @@ impl ProcessCollector {
                     vm_exe,
                     vm_lib,
                 },
-                io: IOB {
+                io: crate::snapshots::IOB {
                     read_bytes,
                     write_bytes,
                     read_syscalls,
                     write_syscalls,
                 },
-                resources: Resources { 
+                resources: crate::snapshots::Resources { 
                     num_fds 
                 },
-                keyprocess: KeyProcess { 
+                keyprocess: crate::snapshots::KeyProcess { 
                     key 
                 },
             },
@@ -249,7 +227,7 @@ impl ProcessCollector {
             )
         })?;
 
-        let name = stat[1..closing_paren].to_owned();
+        let name = stat[3..closing_paren].to_owned();
 
         let rest = &stat[closing_paren + 1..];
 
