@@ -1,4 +1,9 @@
 #[derive(Debug, Clone)]
+pub struct KeyProcess {
+    pub key: u64
+}
+
+#[derive(Debug, Clone)]
 pub struct Entity {
 
     pub pid: u32,

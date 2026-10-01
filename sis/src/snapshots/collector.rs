@@ -13,22 +13,23 @@ use crate::snapshots::processes::{
     Memory,
     IOB,
     Resources,
+    KeyProcess
 };
 
 #[derive(Debug, Clone)]
 pub struct ProcessInfo {
 
-    pub entity      : Entity,
-    pub execution   : Execution,
-    pub cpu         : CPU,
-    pub memory      : Memory,
-    pub io          : IOB,
-    pub resources   : Resources,
+    pub entity          : Entity,
+    pub execution       : Execution,
+    pub cpu             : CPU,
+    pub memory          : Memory,
+    pub io              : IOB,
+    pub resources       : Resources,
+    pub keyprocess      : KeyProcess,
 }
 
 pub struct ProcessCollector{
 
-    keyprocess      : u64,
     processes       : Vec<ProcessInfo>,
 
     stat_buffer     : String,
@@ -45,7 +46,6 @@ impl ProcessCollector {
     pub fn new() -> Self {
         ProcessCollector { 
 
-            keyprocess      : 0,
             processes       : Vec::with_capacity(512),
             stat_buffer     : String::with_capacity(1024),
             status_buffer   : String::with_capacity(2048),
@@ -70,12 +70,6 @@ impl ProcessCollector {
             let Ok(process) = self._get_info(&path, pid) else {
                 continue;
             };
-            
-            self.keyprocess = Self::_make_process_hash(
-                process.entity.pid, 
-                &process.entity.name, 
-                process.entity.start_time
-            );
             
             self.processes.push(process);
         }
@@ -164,6 +158,12 @@ impl ProcessCollector {
         };
 
         let num_fds = Self::_count_fds(proc_path);
+        
+        let key = Self::_make_process_hash(
+            pid, 
+            &name, 
+            start_time
+        );
 
         Ok(
             ProcessInfo {
@@ -202,7 +202,12 @@ impl ProcessCollector {
                     read_syscalls,
                     write_syscalls,
                 },
-                resources: Resources { num_fds },
+                resources: Resources { 
+                    num_fds 
+                },
+                keyprocess: KeyProcess { 
+                    key 
+                },
             },
         )
         
