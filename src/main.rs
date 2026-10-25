@@ -3,15 +3,23 @@ pub mod aud;
 pub mod mndb;
 
 use crate::aud::AuditDetails;
+use crate::mndb::mssql::cnn;
 
-fn main() -> std::io::Result<()> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
-    AuditDetails::new(
-        "CD01".into(), 
+    // test record log
+    // AuditDetails::new(
+    //     "CD01".into(), 
         
-        "ok".into(), 
-        None
-    ).record()?;
+    //     "ok".into(), 
+    //     None
+    // );
 
-    Ok(())    
+    // test mssql connection
+    mndb::init(); 
+    cnn::connect().await?;
+
+    Ok(())   
+
 }
