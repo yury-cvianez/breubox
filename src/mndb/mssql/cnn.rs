@@ -6,7 +6,7 @@ use crate::aud::AuditDetails;
 
 
 
-pub async fn connect() -> Result<Client<Compat<TcpStream>>, Box<dyn std::error::Error>> {
+pub async fn connect() -> Result<Client<Compat<TcpStream>>, Box<dyn std::error::Error + Send + Sync>>  {
 
     let mut config = Config::new();
 
