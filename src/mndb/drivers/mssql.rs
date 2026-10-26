@@ -37,3 +37,4 @@ pub async fn connect() -> Result<Client<Compat<TcpStream>>, Box<dyn std::error::
     
     Ok( client )
 }
+
