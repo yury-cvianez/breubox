@@ -3,10 +3,10 @@ pub mod aud;
 pub mod mndb;
 
 use crate::aud::AuditDetails;
+use crate::mndb::dbs::{BoxError,Dbs};
 
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), BoxError> {
 
     // test record log
     // AuditDetails::new(
@@ -17,6 +17,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // );
 
     // test mssql connection
+    let mut db = Dbs::SqlServer.connect()?;
+    let schema = db.schema()?;
+    println!("{schema:#?}");
 
     Ok(())   
 
