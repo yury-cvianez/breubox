@@ -6,8 +6,13 @@ pub type BoxError = Box<dyn std::error::Error + Send + Sync>;
 #[derive(Debug)]
 pub struct TableInfo {
     
-    pub schema  : String,
-    pub name    : String,
+    pub schema          : String,
+    pub name            : String,
+    pub column          : String,
+    pub data_type       : String,
+    pub char_max_lenght : Option<i32>,
+    pub is_null         : String,
+    pub column_default  : String,
 }
 
 #[derive(Debug)]

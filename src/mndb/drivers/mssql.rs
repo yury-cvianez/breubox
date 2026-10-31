@@ -46,8 +46,14 @@ impl Database for Mssql {
         })?;
 
         Ok(rows.iter().map(|r| TableInfo{
-                schema  : r.get::<&str, _>(0).unwrap_or_default().to_string(),
-                name    : r.get::<&str, _>(1).unwrap_or_default().to_string(),
+                schema          : r.get::<&str, _>(0).unwrap_or_default().to_string(),
+                name            : r.get::<&str, _>(1).unwrap_or_default().to_string(),
+                column          : r.get::<&str, _>(2).unwrap_or_default().to_string(),
+                data_type       : r.get::<&str, _>(3).unwrap_or_default().to_string(),
+                char_max_lenght : r.get::<i32, _>(4),
+                is_null         : r.get::<&str, _>(5).unwrap_or_default().to_string(),
+                column_default  : r.get::<&str, _>(6).unwrap_or_default().to_string(),
+                
         }).collect())
 
     }

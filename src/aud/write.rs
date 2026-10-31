@@ -27,7 +27,7 @@ impl LineLog {
             .append(true)
             .open(path)?;
 
-        file.write(self.line.as_bytes())?;
+        //file.write(self.line.as_bytes())?;
         //file.sync_data()?;
 
         Ok(())
