@@ -1,16 +1,17 @@
 use dotenvy::dotenv;
+use tiberius::ColumnData;
 use tokio::net::TcpStream;
+use tokio::runtime::{Builder, Runtime};
 use tiberius::{Client, Config, AuthMethod};
 use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 
-use tokio::runtime::{Builder, Runtime};
-use crate::mndb::dbs::{BoxError, Database, KeypInfo, KeyfInfo, TableInfo};
+use crate::mndb::dbs::{BoxError, Database, Row, Value};
 use crate::aud::AuditDetails;
 
 
-const TABLES: &str = include_str!("sql/mssql/tables.sql");
-const KEYP  : &str = include_str!("sql/mssql/keyp.sql");
-const KEYF  : &str = include_str!("sql/mssql/keyf.sql");
+const TABLES        : &str = include_str!("sql/mssql/tables.sql");
+const PRIMARY_KEYS  : &str = include_str!("sql/mssql/keyp.sql");
+const FOREIGN_KEYS  : &str = include_str!("sql/mssql/keyf.sql");
 
 
 pub struct Mssql {
@@ -34,29 +35,27 @@ impl Mssql {
 
 impl Database for Mssql {
 
-    fn tables(&mut self)        -> Result<Vec<TableInfo>, BoxError> {
+    fn query(&mut self, sql: &str) -> Result<Vec<Row>, BoxError> {
         
-        let Self {rt, client} = self;
-        
-        let rows = rt.block_on (async {
-            client.query(TABLES, &[])
+        let Self { rt, client } = self;
+
+        let rows = rt.block_on(async {
+            client.query(sql, &[])
                 .await?
                 .into_first_result()
                 .await
         })?;
 
-        Ok(rows.iter().map(|r| TableInfo{
-                schema          : r.get::<&str, _>(0).unwrap_or_default().to_string(),
-                name            : r.get::<&str, _>(1).unwrap_or_default().to_string(),
-                column          : r.get::<&str, _>(2).unwrap_or_default().to_string(),
-                data_type       : r.get::<&str, _>(3).unwrap_or_default().to_string(),
-                char_max_lenght : r.get::<i32, _>(4),
-                is_null         : r.get::<&str, _>(5).unwrap_or_default().to_string(),
-                column_default  : r.get::<&str, _>(6).unwrap_or_default().to_string(),
-                
-        }).collect())
-
+        Ok(rows
+            .into_iter()
+            .map(|row| row.into_iter().map(to_value).collect())
+            .collect()
+        )
     }
+
+    fn sql_tables(&self)       -> &'static str { TABLES }
+    fn sql_primary_keys(&self) -> &'static str { PRIMARY_KEYS }
+    fn sql_foreign_keys(&self) -> &'static str { FOREIGN_KEYS }
 
 }
 
@@ -90,4 +89,20 @@ pub async fn connect() -> Result<Client<Compat<TcpStream>>, Box<dyn std::error::
     )?;
     
     Ok( client )
+}
+
+fn to_value(col: ColumnData<'_>) -> Value {
+
+    match col {
+        ColumnData::Bit(Some(v))             => Value::Bool(v),
+        ColumnData::U8(Some(v))                => Value::Int(v as i64),
+        ColumnData::I16(Some(v))              => Value::Int(v as i64),
+        ColumnData::I32(Some(v))              => Value::Int(v as i64),
+        ColumnData::I64(Some(v))              => Value::Int(v),
+        ColumnData::F32(Some(v))              => Value::Float(v as f64),
+        ColumnData::F64(Some(v))              => Value::Float(v),
+        ColumnData::String(Some(v))  => Value::Text(v.into_owned()),
+
+        _ => Value::Null,
+    }
 }

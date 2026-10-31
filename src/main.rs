@@ -18,7 +18,7 @@ fn main() -> Result<(), BoxError> {
 
     // test mssql connection
     let mut db = Dbs::SqlServer.connect()?;
-    let schema = db.schema()?;
+    let schema = db.schema_map()?;
     println!("{schema:#?}");
 
     Ok(())   
